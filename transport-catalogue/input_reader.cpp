@@ -96,18 +96,7 @@ void input::Reader::ApplyCommands([[maybe_unused]] Catalogue& catalogue) const {
             catalogue.AddStop(elem.id, ParseCoordinates(elem.description));
         }
         if (elem.command == "Bus") {
-            std::vector<const Stop*> stops;
-            for (const std::string_view& stop : ParseRoute(elem.description)) {
-                if (catalogue.FindStop(stop) != nullptr)
-                    stops.push_back(catalogue.FindStop(stop));
-                else {
-                    Stop* s = new Stop;
-                    s->name = stop;
-                    s->coordinates = { 0,0 };
-                    stops.push_back(s);
-                }
-            }
-            catalogue.AddBus(elem.id, stops, (elem.description.find('>') != std::string_view::npos) ? true : false);
+            catalogue.AddBus(elem.id, ParseRoute(elem.description), (elem.description.find('>') != std::string_view::npos) ? true : false);
         }
     }
     // Реализуйте метод самостоятельно
