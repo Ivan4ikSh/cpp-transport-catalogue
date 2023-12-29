@@ -2,19 +2,22 @@
 #include <algorithm>
 
 namespace transport {
-    void Catalogue::AddStop(const std::string name, geo::Coordinates coords) {
-        std::set<std::string> buses_by_stop;
-        all_stops_.push_back({ name, coords, buses_by_stop });
+    void Catalogue::AddStop(const std::string& name, const geo::Coordinates& coords) {
+        all_stops_.push_back({ name, coords });
         stopname_to_stop_[all_stops_.back().name] = &all_stops_.back();
 
         SyncBuses(name, coords);
     }
 
-    void Catalogue::AddBus(const std::string_view bus_number, const std::vector<std::string_view> stops_sv, const bool is_circle) {
+    void Catalogue::AddBus(const std::string_view& bus_number, const std::vector<std::string_view>& stops_sv, const bool is_circle) {
         std::vector<const Stop*> stops = SyncStops(bus_number, stops_sv);
 
         all_buses_.push_back({ std::string(bus_number), stops, is_circle });
         busname_to_bus_[all_buses_.back().number] = &all_buses_.back();
+
+        for (const auto& stop : busname_to_bus_.at(bus_number)->stops) {
+            buses_by_stop_[stop->name].insert(busname_to_bus_.at(bus_number)->number);
+        }
     }
 
     const Bus* Catalogue::FindBus(std::string_view bus_number) const {
@@ -24,6 +27,17 @@ namespace transport {
     const Stop* Catalogue::FindStop(std::string_view stop_name) const {
         return stopname_to_stop_.count(stop_name) ? stopname_to_stop_.at(stop_name) : nullptr;
     }
+    size_t Catalogue::UiniqueStopsCount(std::string_view bus_number) const {
+        std::unordered_set<std::string_view> unique_words;
+        for (const auto& stop : busname_to_bus_.at(bus_number)->stops) {
+            unique_words.insert(stop->name);
+        }
+
+        return unique_words.size();
+    }
+    std::set<std::string> Catalogue::FindStopsForBus(std::string& bus_number) const {
+        return buses_by_stop_.count(bus_number) ? buses_by_stop_.at(bus_number) : std::set<std::string>{};
+    }
     void Catalogue::SyncBuses(const std::string name, geo::Coordinates coords) {
         for (auto& bus_info : all_buses_) {
             Stop* new_stop = new Stop;
@@ -32,10 +46,6 @@ namespace transport {
                     new_stop->name = std::move(name);
                     new_stop->coordinates = coords;
                     stop = new_stop;
-
-                    for (auto& stop_info : all_stops_) {
-                        if (stop_info.name == stop->name) stop_info.buses_by_stop.insert(bus_info.number);
-                    }
                 }
             }
         }
@@ -55,13 +65,6 @@ namespace transport {
                 stops.push_back(s);
             }
         }
-
-        for (const auto& route_stop : stops) {
-            for (auto& stop : all_stops_) {
-                if (stop.name == route_stop->name) stop.buses_by_stop.insert(std::string(bus_number));
-            }
-        }
-
         return stops;
     }
 }
