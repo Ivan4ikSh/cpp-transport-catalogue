@@ -10,5 +10,10 @@ void ParseAndPrintStat(const Catalogue& transport_catalogue, std::string_view re
     std::string command = move(std::string(request.substr(0, pos)));
     std::string value = move(std::string(request.substr(pos + 1)));
 
-    transport_catalogue.OutInfo(command, value, output);
+    if (command == "Bus") {
+        transport_catalogue.BusInfo(value, output);
+    }
+    else if (command == "Stop") {
+        transport_catalogue.StopInfo(value, output);
+    }
 }

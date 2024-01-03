@@ -25,7 +25,8 @@ namespace transport {
 		void AddStop(const std::string& name, const geo::Coordinates& coords);
 		void AddBus(const std::string_view& bus_number, const std::vector<std::string_view>& stops_sv, const bool is_circle);
 
-		void OutInfo(std::string command, std::string value, std::ostream& output) const ;
+		void BusInfo(std::string value, std::ostream& output) const;
+		void StopInfo(std::string value, std::ostream& output) const;
 	private:
 		std::deque<type::Bus> all_buses_;
 		std::deque<type::Stop> all_stops_;
