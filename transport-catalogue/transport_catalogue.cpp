@@ -30,13 +30,26 @@ transport::type::Stop* transport::Catalogue::FindStop(std::string_view stop_name
     return stopname_to_stop_.count(stop_name) ? stopname_to_stop_.at(stop_name) : nullptr;
 }
 
-size_t transport::Catalogue::UiniqueStopsCount(std::string_view bus_number) const {
+size_t transport::Catalogue::GetStopsCount(std::string_view bus_number) const {
+    return FindBus(bus_number)->stops.size();
+}
+
+size_t transport::Catalogue::GetUiniqueStopsCount(std::string_view bus_number) const {
     std::unordered_set<std::string_view> unique_words;
     for (const auto& stop : busname_to_bus_.at(bus_number)->stops) {
         unique_words.insert(stop->name);
     }
 
     return unique_words.size();
+}
+double transport::Catalogue::GetBusRouteDistance(std::string_view bus_number) const {
+    transport::type::Bus* bus = FindBus(bus_number);
+
+    double route = 0;
+    for (size_t i = 0; i < bus->stops.size() - 1; ++i) {
+        route += geo::ComputeDistance(bus->stops[i]->coordinates, bus->stops[i + 1]->coordinates);
+    }
+    return route;
 }
 std::set<std::string> transport::Catalogue::FindStopsForBus(std::string& bus_number) const {
     return buses_by_stop_.count(bus_number) ? buses_by_stop_.at(bus_number) : std::set<std::string>{};
@@ -70,41 +83,3 @@ std::vector<transport::type::Stop*> transport::Catalogue::SyncStops(const std::s
     return stops;
 }
 
-void transport::Catalogue::BusInfo(std::string value, std::ostream& output) const {
-    output << "Bus " << value << ": ";
-    transport::type::Bus* bus = FindBus(value);
-
-    if (bus == nullptr) {
-        output << "not found\n";
-        return;
-    }
-
-    output << bus->stops.size() << " stops on route, ";
-    output << UiniqueStopsCount(value) << " unique stops, ";
-
-    double route = 0;
-    for (size_t i = 0; i < bus->stops.size() - 1; ++i) {
-        route += geo::ComputeDistance(bus->stops[i]->coordinates, bus->stops[i + 1]->coordinates);
-    }
-    output << route << " route length\n";
-}
-
-void transport::Catalogue::StopInfo(std::string value, std::ostream& output) const {
-    std::set<std::string> stop_list = FindStopsForBus(value);
-    output << "Stop " << value << ": ";
-    transport::type::Stop* stop = FindStop(value);
-
-    if (stop == nullptr) {
-        output << "not found\n";
-        return;
-    }
-    if (stop_list.size() == 0) {
-        output << "no buses\n";
-        return;
-    }
-    output << "buses ";
-    for (const auto& bus : stop_list) {
-        output << bus << " ";
-    }
-    output << "\n";
-}

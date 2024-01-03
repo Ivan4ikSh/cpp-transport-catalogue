@@ -24,9 +24,15 @@ namespace transport {
 	public:
 		void AddStop(const std::string& name, const geo::Coordinates& coords);
 		void AddBus(const std::string_view& bus_number, const std::vector<std::string_view>& stops_sv, const bool is_circle);
+		
+		type::Bus* FindBus(std::string_view bus_number) const;
+		type::Stop* FindStop(std::string_view stop_name) const;
+		std::set<std::string> FindStopsForBus(std::string& bus_number) const;
 
-		void BusInfo(std::string value, std::ostream& output) const;
-		void StopInfo(std::string value, std::ostream& output) const;
+		//businfo
+		size_t GetStopsCount(std::string_view bus_number) const;
+		size_t GetUiniqueStopsCount(std::string_view bus_number) const;
+		double GetBusRouteDistance(std::string_view bus_number) const;
 	private:
 		std::deque<type::Bus> all_buses_;
 		std::deque<type::Stop> all_stops_;
@@ -37,10 +43,7 @@ namespace transport {
 
 		void SyncBuses(const std::string name, geo::Coordinates coords);
 		std::vector<type::Stop*> SyncStops(const std::string_view bus_number, const std::vector<std::string_view> stops_sv);
-		type::Bus* FindBus(std::string_view bus_number) const;
-		type::Stop* FindStop(std::string_view stop_name) const;
-		std::set<std::string> FindStopsForBus(std::string& bus_number) const;
-		size_t UiniqueStopsCount(std::string_view bus_number) const;
+		
 		// Реализуйте класс самостоятельно
 	};
 }
