@@ -15,11 +15,11 @@ void ParseAndPrintStat(const Catalogue& transport_catalogue, std::string_view re
             output << "Bus " << value << ": not found\n";
             return;
         }
-        std::optional<data::Bus> bus_data = transport_catalogue.GetBusData(value);
-        output << "Bus " << bus_data.value().name << ": "
-            << bus_data.value().stop_count << " stops on route, "
-            << bus_data.value().unique_stop_count << " unique stops, "
-            << bus_data.value().route_length << " route length\n";
+        data::Bus bus_data = transport_catalogue.GetBusData(value).value();
+        output << "Bus " << bus_data.name << ": "
+            << bus_data.stop_count << " stops on route, "
+            << bus_data.unique_stop_count << " unique stops, "
+            << bus_data.route_length << " route length\n";
     }
     else if (command == "Stop") {
         if (transport_catalogue.FindStop(value) == nullptr) {
@@ -27,13 +27,13 @@ void ParseAndPrintStat(const Catalogue& transport_catalogue, std::string_view re
             return;
         }
 
-        std::optional<data::Stop> stop_data = transport_catalogue.GetStopData(value);
-        if (stop_data.value().buses_by_stop.size() == 0) {
+        data::Stop stop_data = transport_catalogue.GetStopData(value).value();
+        if (stop_data.buses_by_stop.size() == 0) {
             output << "Stop " << value << ": no buses\n";
             return;
         }
-        output << "Stop " << stop_data.value().name << ": ";
-        for (const auto& bus : stop_data.value().buses_by_stop) {
+        output << "Stop " << stop_data.name << ": ";
+        for (const auto& bus : stop_data.buses_by_stop) {
             output << bus << " ";
         }
         output << "\n";            
