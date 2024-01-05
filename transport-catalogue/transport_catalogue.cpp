@@ -32,20 +32,28 @@ transport::type::Stop* transport::Catalogue::FindStop(std::string_view stop_name
     return stopname_to_stop_.count(stop_name) ? stopname_to_stop_.at(stop_name) : nullptr;
 }
 
-size_t transport::Catalogue::GetStopsCount(std::string_view bus_number) const {
-    return FindBus(bus_number)->stops.size();
+size_t transport::Catalogue::GetStopCount(std::string_view bus_number) const {
+    return busname_to_bus_.count(bus_number) ? FindBus(bus_number)->stops.size() : 0;
 }
 
 size_t transport::Catalogue::GetUiniqueStopsCount(std::string_view bus_number) const {
     std::unordered_set<std::string_view> unique_words;
-    for (const auto& stop : busname_to_bus_.at(bus_number)->stops) {
-        unique_words.insert(stop->name);
+    
+    if (busname_to_bus_.count(bus_number)) {
+        for (const auto& stop : busname_to_bus_.at(bus_number)->stops) {
+            unique_words.insert(stop->name);
+        }
     }
-
+    else {
+        return 0;
+    }
     return unique_words.size();
 }
 double transport::Catalogue::GetBusRouteDistance(std::string_view bus_number) const {
     transport::type::Bus* bus = FindBus(bus_number);
+    if (bus==nullptr) {
+        return 0.0;
+    }
 
     double route = 0;
     for (size_t i = 0; i < bus->stops.size() - 1; ++i) {
@@ -57,34 +65,22 @@ std::set<std::string> transport::Catalogue::FindStopsForBus(std::string& bus_num
     return buses_by_stop_.count(bus_number) ? buses_by_stop_.at(bus_number) : std::set<std::string>{};
 }
 
-std::string transport::Catalogue::BusInfo(std::string value) const {
-    if (FindBus(value) == nullptr) {
-        return "Bus "s + value + ": not found\n"s;
-    }
+std::optional<transport::data::Bus>transport::Catalogue::GetBusData(std::string value) const {
+    transport::data::Bus bus_data;
+    bus_data.name = value;
+    bus_data.stop_count = GetStopCount(value);
+    bus_data.unique_stop_count = GetUiniqueStopsCount(value);
+    bus_data.route_length = GetBusRouteDistance(value);
 
-    return "Bus "s + value + ": "s +
-        std::to_string(GetStopsCount(value)) + " stops on route, "s +
-        std::to_string(GetUiniqueStopsCount(value)) + " unique stops, "s +
-        std::to_string(GetBusRouteDistance(value)) + " route length\n"s;
+    return bus_data;
 }
 
-std::string transport::Catalogue::StopInfo(std::string value) const {
-    if (FindStop(value) == nullptr) {
-        return "Stop "s + value + ": not found\n"s;
-    }
+std::optional<transport::data::Stop>transport::Catalogue::GetStopData(std::string value) const {
+    transport::data::Stop stop_data;
+    stop_data.name = value;
+    stop_data.buses_by_stop = FindStopsForBus(value);
 
-    std::set<std::string> stop_list = FindStopsForBus(value);
-    if (stop_list.size() == 0) {
-        return "Stop "s + value + ": no buses\n"s;
-    }
-
-    std::string output = "Stop "s + value + ": buses "s;
-    for (const auto& bus : stop_list) {
-        output += bus + " "s;
-    }
-    output += "\n"s;
-
-    return output;
+    return stop_data;
 }
 
 void transport::Catalogue::SyncBuses(const std::string name, geo::Coordinates coords) {
