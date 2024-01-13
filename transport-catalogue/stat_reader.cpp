@@ -1,6 +1,9 @@
-#include "start_reader.h"
+#include "stat_reader.h"
 #include <iostream>
 #include <unordered_set>
+#include <string>
+#include <sstream>
+#include <iomanip>
 #include <algorithm>
 using namespace transport;
 
@@ -19,7 +22,8 @@ void ParseAndPrintStat(const Catalogue& transport_catalogue, std::string_view re
         output << "Bus " << bus_data.name << ": "
             << bus_data.stop_count << " stops on route, "
             << bus_data.unique_stop_count << " unique stops, "
-            << bus_data.route_length << " route length\n";
+            << bus_data.route_length << " route length, "
+            << bus_data.curvature << " curvature\n";
     }
     else if (command == "Stop") {
         if (transport_catalogue.FindStop(value) == nullptr) {
@@ -32,7 +36,7 @@ void ParseAndPrintStat(const Catalogue& transport_catalogue, std::string_view re
             output << "Stop " << value << ": no buses\n";
             return;
         }
-        output << "Stop " << stop_data.name << ": ";
+        output << "Stop " << stop_data.name << ": buses ";
         for (const auto& bus : stop_data.buses_by_stop) {
             output << bus << " ";
         }

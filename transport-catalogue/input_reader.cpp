@@ -4,11 +4,6 @@
 #include <cassert>
 #include <iterator>
 
-/**
- * Парсит строку вида "10.123,  -30.1837" и возвращает пару координат (широта, долгота)
- */
-//using namespace input;
-
 geo::Coordinates ParseCoordinates(std::string_view str) {
     static const double nan = std::nan("");
 
@@ -25,18 +20,36 @@ geo::Coordinates ParseCoordinates(std::string_view str) {
     return { lat, lng };
 }
 
-/**
- * Удаляет пробелы в начале и конце строки
- */
+std::unordered_map<std::string, int> ParseDistances(std::string str) {
+    if (str.find(",", str.find(",") + 1) > str.size()) return{};
+
+    str = str.substr(str.find(",", str.find(",") + 1) + 2);
+
+    std::unordered_map<std::string, int> distances;
+    while (!str.empty()) {
+        std::string stop_to_name;
+        int distance = std::stoi(str.substr(0, str.find_first_of("m to ")));
+        str.erase(0, str.find_first_of("m to ") + 5);
+
+        if (str.find("m to ") == str.npos) {
+            stop_to_name = str.substr(0, str.npos - 1);
+            str.clear();
+        }
+        else {
+            stop_to_name = str.substr(0, str.find_first_of(','));
+            str.erase(0, str.find_first_of(',') + 2);
+        }
+        distances[stop_to_name] = distance;
+    }
+    return distances;
+}
+
 std::string_view Trim(std::string_view string) {
     const auto start = string.find_first_not_of(' ');
     if (start == string.npos) return {};
     return string.substr(start, string.find_last_not_of(' ') + 1 - start);
 }
 
-/**
- * Разбивает строку string на n строк, с помощью указанного символа-разделителя delim
- */
 std::vector<std::string_view> Split(std::string_view string, char delim) {
     std::vector<std::string_view> result;
 
@@ -55,11 +68,6 @@ std::vector<std::string_view> Split(std::string_view string, char delim) {
     return result;
 }
 
-/**
- * Парсит маршрут.
- * Для кольцевого маршрута (A>B>C>A) возвращает массив названий остановок [A,B,C,A]
- * Для некольцевого маршрута (A-B-C-D) возвращает массив названий остановок [A,B,C,D,C,B,A]
- */
 std::vector<std::string_view> ParseRoute(std::string_view route) {
     if (route.find('>') != route.npos) return Split(route, '>');
 
@@ -90,14 +98,33 @@ void input::Reader::ParseLine(std::string_view line) {
     if (command_description) commands_.push_back(std::move(command_description));
 }
 
+
 void input::Reader::ApplyCommands([[maybe_unused]] Catalogue& catalogue) const {
+    std::vector<std::pair<std::string, std::string>> query_bus;
+    std::vector<std::pair<std::string, std::string>> query_stop;
+    std::vector<std::pair<std::string, std::string>> query_stop_distances;
+
     for (const auto& elem : commands_) {
         if (elem.command == "Stop") {
-            catalogue.AddStop(elem.id, ParseCoordinates(elem.description));
+            query_stop.push_back({ elem.id, elem.description });
         }
         if (elem.command == "Bus") {
-            catalogue.AddBus(elem.id, ParseRoute(elem.description), (elem.description.find('>') != std::string_view::npos) ? true : false);
+            query_bus.push_back({ elem.id, elem.description });
         }
     }
-    // Реализуйте метод самостоятельно
+
+    for (auto& stop : query_stop) {
+        catalogue.AddStop(stop.first, ParseCoordinates(stop.second));
+    }
+
+    for (auto& stop : query_stop) {
+        for (const auto& distance : ParseDistances(stop.second)) {
+            catalogue.SetDistance(catalogue.FindStop(stop.first), catalogue.FindStop(distance.first), distance.second);
+        }
+    }
+
+    for (auto& bus : query_bus) {
+        catalogue.AddBus(bus.first, ParseRoute(bus.second), (bus.second.find('>') != std::string_view::npos) ? true : false);
+        bus = {};
+    }
 }
