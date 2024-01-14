@@ -50,8 +50,8 @@ std::string_view Trim(std::string_view string) {
     return string.substr(start, string.find_last_not_of(' ') + 1 - start);
 }
 
-std::vector<std::string_view> Split(std::string_view string, char delim) {
-    std::vector<std::string_view> result;
+std::vector<std::string> Split(std::string_view string, char delim) {
+    std::vector<std::string> result;
 
     size_t pos = 0;
     while ((pos = string.find_first_not_of(' ', pos)) < string.length()) {
@@ -60,7 +60,7 @@ std::vector<std::string_view> Split(std::string_view string, char delim) {
             delim_pos = string.size();
         }
         if (auto substr = Trim(string.substr(pos, delim_pos - pos)); !substr.empty()) {
-            result.push_back(substr);
+            result.push_back(std::string(substr));
         }
         pos = delim_pos + 1;
     }
@@ -68,11 +68,11 @@ std::vector<std::string_view> Split(std::string_view string, char delim) {
     return result;
 }
 
-std::vector<std::string_view> ParseRoute(std::string_view route) {
+std::vector<std::string> ParseRoute(std::string_view route) {
     if (route.find('>') != route.npos) return Split(route, '>');
 
     auto stops = Split(route, '-');
-    std::vector<std::string_view> results(stops.begin(), stops.end());
+    std::vector<std::string> results(stops.begin(), stops.end());
     results.insert(results.end(), std::next(stops.rbegin()), stops.rend());
 
     return results;
@@ -102,7 +102,6 @@ void input::Reader::ParseLine(std::string_view line) {
 void input::Reader::ApplyCommands([[maybe_unused]] Catalogue& catalogue) const {
     std::vector<std::pair<std::string, std::string>> query_bus;
     std::vector<std::pair<std::string, std::string>> query_stop;
-    std::vector<std::pair<std::string, std::string>> query_stop_distances;
 
     for (const auto& elem : commands_) {
         if (elem.command == "Stop") {

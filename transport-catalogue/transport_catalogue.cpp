@@ -14,7 +14,7 @@ void transport::Catalogue::AddStop(const std::string& name, const geo::Coordinat
     stopname_to_stop_[all_stops_.back().name] = &all_stops_.back();
 }
 
-void transport::Catalogue::AddBus(const std::string_view& bus_number, const std::vector<std::string_view>& stops, const bool is_circle) {
+void transport::Catalogue::AddBus(const std::string bus_number, const std::vector<std::string>& stops, const bool is_circle) {
     std::vector<type::Stop*> stop_list;
     for (const auto& route_stop : stops) {
         stop_list.push_back(FindStop(route_stop));
@@ -119,8 +119,4 @@ std::optional<transport::data::Stop>transport::Catalogue::GetStopData(std::strin
     stop_data.buses_by_stop = FindStopsForBus(value);
 
     return stop_data;
-}
-
-const std::unordered_map<std::pair<transport::type::Stop*, transport::type::Stop*>, int, transport::Catalogue::StopDistancesHasher> transport::Catalogue::GetStopDistances() const {
-    return stop_distances_;
 }

@@ -50,7 +50,7 @@ namespace transport {
 			}
 		};
 		void AddStop(const std::string& name, const geo::Coordinates& coords);
-		void AddBus(const std::string_view& bus_number, const std::vector<std::string_view>& stops, const bool is_circle);
+		void AddBus(const std::string bus_number, const std::vector<std::string>& stops, const bool is_circle);
 		
 		type::Bus* FindBus(std::string_view bus_number) const;
 		type::Stop* FindStop(std::string_view stop_name) const;
@@ -59,7 +59,6 @@ namespace transport {
 		std::optional<data::Bus> GetBusData(std::string value) const;
 		std::optional<data::Stop> GetStopData(std::string value) const;
 
-		const std::unordered_map<std::pair<type::Stop*, type::Stop*>, int, StopDistancesHasher> GetStopDistances() const;
 		void SetDistance(type::Stop* from, type::Stop* to, int distance);
 	private:
 		std::deque<type::Bus> all_buses_;
