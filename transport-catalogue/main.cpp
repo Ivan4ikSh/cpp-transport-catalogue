@@ -1,37 +1,28 @@
-#include <iostream>
-#include <chrono>
+#include "json_reader.h"
+#include "request_handler.h"
+
 #include <fstream>
-#include <string>
-
-#include "input_reader.h"
-#include "stat_reader.h"
-
-using namespace std;
-using namespace transport;
-using namespace input;
 
 int main() {
-    Catalogue catalogue;
-    fstream file("test.txt");
-    if (!file) cout << "error" << endl;
+    setlocale(LC_ALL, "rus");
+    std::fstream input("input.json");
+    if (!input) std::cout << "input error" << std::endl;
 
-    int base_request_count;
-    file >> base_request_count >> ws;
-    {
-        Reader reader;
-        for (int i = 0; i < base_request_count; ++i) {
-            string line;
-            getline(file, line);
-            reader.ParseLine(line);
-        }
-        reader.ApplyCommands(catalogue);
-    }
+    std::fstream output("output.xml");
+    if (!output) std::cout << "output error" << std::endl;
 
-    int stat_request_count;
-    file >> stat_request_count >> ws;
-    for (int i = 0; i < stat_request_count; ++i) {
-        string line;
-        getline(file, line);
-        ParseAndPrintStat(catalogue, line, cout);
-    }
+    JsonReader json_doc(input);
+    transport::Catalogue catalogue;
+    json_doc.FillCatalogue(catalogue);
+
+    const auto& stat_requests = json_doc.GetStatRequests();
+    const auto& render_settings = json_doc.GetRenderSettings().AsMap();
+    const auto& renderer = json_doc.FillRenderSettings(render_settings);
+    
+    RequestHandler request(catalogue, renderer);
+    request.ProcessRequests(stat_requests);
+    request.RenderMap().Render(output);
+
+    input.close();
+    output.close();
 }
