@@ -113,7 +113,7 @@ const std::map<std::string_view, const transport::type::Bus*> transport::Catalog
     return result;
 }
 
-std::set<std::string> transport::Catalogue::FindStopsForBus(std::string_view& stop_name) const {
+std::set<std::string> transport::Catalogue::FindStopsForBus(std::string_view stop_name) const {
     type::Stop* stop = FindStop(stop_name);
     return stop ? stop->buses_by_stop : std::set<std::string>{};
 }

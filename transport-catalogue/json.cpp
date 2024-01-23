@@ -16,11 +16,6 @@ namespace json {
                 if (nameNull.at(i) == input.get()) continue;
                 else throw ParsingError("Null parsing error");
             }
-
-            if (isalpha(input.peek())) {
-                throw ParsingError("Null parsing error");
-            }
-
             return {};
         }
 
@@ -146,9 +141,10 @@ namespace json {
                     try {
                         return std::stoi(parsed_num);
                     }
-                    catch (...) {}
-                    // В случае неудачи, например, при переполнении,
-                    // код ниже попробует преобразовать строку в double
+                    catch (...) {
+                        // В случае неудачи, например, при переполнении,
+                        // код ниже попробует преобразовать строку в double
+                    }
                 }
                 return std::stod(parsed_num);
             }
@@ -158,17 +154,15 @@ namespace json {
         }
 
         Node LoadBool(istream& input) {
-            bool value = (input.peek() == 't');
-            std::string const name = value ? "true" : "false";
-
-            for (size_t i = 0; i < name.size(); i++) {
-                if (name.at(i) != input.get()) throw ParsingError("Bool parsing error");
+            const string nameFalse = "false";
+            const string nameTrue = "true";
+            char c = input.get();
+            bool value = (c == 't');
+            std::string const* name = value ? &nameTrue : &nameFalse;
+            for (size_t i = 1; i < name->size(); i++) {
+                if (name->at(i) == input.get()) continue;
+                else throw ParsingError("Bool parsing error");
             }
-
-            if (isalpha(input.peek())) {
-                throw ParsingError("Bool parsing error");
-            }
-
             return Node(value);
         }
 
@@ -182,6 +176,7 @@ namespace json {
                 }
                 result.push_back(LoadNode(input));
             }
+
             return Node(std::move(result));
         }
 
@@ -231,34 +226,6 @@ namespace json {
 
     }  // namespace
 
-    Node::Node(std::nullptr_t)
-        : value_(nullptr) {
-    }
-
-    Node::Node(std::string value)
-        : value_(std::move(value)) {
-    }
-
-    Node::Node(int value)
-        : value_(value) {
-    }
-
-    Node::Node(double value)
-        : value_(value) {
-    }
-
-    Node::Node(bool value)
-        : value_(value) {
-    }
-
-    Node::Node(Array array)
-        : value_(std::move(array)) {
-    }
-
-    Node::Node(Dict map)
-        : value_(std::move(map)) {
-    }
-
     bool Node::IsInt() const {
         return holds_alternative<int>(value_);
     }
@@ -292,33 +259,33 @@ namespace json {
     }
 
     int Node::AsInt() const {
-        if (!IsInt()) throw std::logic_error("wrong type");
+        if (!IsInt()) throw ParsingError("not int");
         return std::get<int>(value_);
     }
 
     bool Node::AsBool() const {
-        if (!IsBool()) throw std::logic_error("wrong type");
+        if (!IsBool()) throw ParsingError("not bool");
         return std::get<bool>(value_);
     }
 
     double Node::AsDouble() const {
-        if (!IsDouble()) throw std::logic_error("wrong type");
+        if (!IsDouble()) throw ParsingError("not double");
         if (IsInt()) return static_cast<double>(std::get<int>(value_));
         return std::get<double>(value_);
     }
 
     const std::string& Node::AsString() const {
-        if (!IsString()) throw std::logic_error("wrong type");
+        if (!IsString()) throw ParsingError("not string");
         return std::get<std::string>(value_);
     }
 
     const Array& Node::AsArray() const {
-        if (!IsArray()) throw std::logic_error("wrong type");
+        if (!IsArray()) throw ParsingError("not array");
         return std::get<Array>(value_);
     }
 
     const Dict& Node::AsMap() const {
-        if (!IsMap()) throw std::logic_error("wrong type");
+        if (!IsMap()) throw ParsingError("wrong map");
         return std::get<Dict>(value_);
     }
 
@@ -354,74 +321,77 @@ namespace json {
         return Document{ LoadNode(input) };
     }
 
-    void ValuePrinter::operator()(std::nullptr_t) {
-        out << "null"sv;
+    void PrintValue(std::nullptr_t, const PrintContext& ctx) {
+        ctx.out << "null"sv;
     }
 
-    void ValuePrinter::operator()(std::string value) {
-        out << "\""sv;
+    void PrintValue(std::string value, const PrintContext& ctx) {
+        ctx.out << "\""sv;
         for (const char& c : value) {
             if (c == '\n') {
-                out << "\\n"sv;
+                ctx.out << "\\n"sv;
                 continue;
             }
             if (c == '\r') {
-                out << "\\r"sv;
+                ctx.out << "\\r"sv;
                 continue;
             }
-            if (c == '\"') {
-                out << "\\"sv;
-            }
+            if (c == '\"') ctx.out << "\\"sv;
             if (c == '\t') {
-                out << "\\t"sv;
+                ctx.out << "\t"sv;
                 continue;
             }
-            if (c == '\\') {
-                out << "\\"sv;
-            }
-            out << c;
+            if (c == '\\') ctx.out << "\\"sv;
+            ctx.out << c;
         }
-        out << "\""sv;
+        ctx.out << "\""sv;
     }
 
-    void ValuePrinter::operator()(int value) {
-        out << value;
+    void PrintValue(bool value, const PrintContext& ctx) {
+        ctx.out << std::boolalpha << value;
     }
 
-    void ValuePrinter::operator()(double value) {
-        out << value;
-    }
-
-    void ValuePrinter::operator()(bool value) {
-        out << std::boolalpha << value;
-    }
-
-    void ValuePrinter::operator()(Array array) {
-        out << "["sv;
+    void PrintValue(Array array, const PrintContext& ctx) {
+        ctx.out << "[\n"sv;
+        auto inner_ctx = ctx.Indented();
         bool first = true;
         for (const auto& elem : array) {
             if (first) first = false;
-            else out << ", "s;
-
-            std::visit(ValuePrinter{ out }, elem.GetValue());
+            else ctx.out << ",\n"s;
+            inner_ctx.PrintIndent();
+            PrintNode(elem, inner_ctx);
         }
-        out << "]"sv;
+        ctx.out << "\n"s;
+        ctx.PrintIndent();
+        ctx.out << "]"sv;
     }
 
-    void ValuePrinter::operator()(Dict dict) {
-        out << "{ "sv;
+    void PrintValue(Dict dict, const PrintContext& ctx) {
+        ctx.out << "{\n"sv;
+        auto inner_ctx = ctx.Indented();
         bool first = true;
         for (auto& [key, node] : dict) {
             if (first) first = false;
-            else out << ", "s;
-            out << "\"" << key << "\": ";
-            std::visit(ValuePrinter{ out }, node.GetValue());
+            else ctx.out << ",\n"s;
+            inner_ctx.PrintIndent();
+            PrintValue(key, ctx);
+            ctx.out << ": ";
+            PrintNode(node, inner_ctx);
         }
-        out << " }"sv;
+        ctx.out << "\n"s;
+        ctx.PrintIndent();
+        ctx.out << "}"sv;
     }
 
-    void Print(const Document& doc, std::ostream& out) {
-        std::visit(ValuePrinter{ out }, doc.GetRoot().GetValue());
+    void PrintNode(const Node& node, const PrintContext& ctx) {
+        std::visit(
+            [&ctx](const auto& value) { PrintValue(value, ctx); },
+            node.GetValue());
+    }
+
+    void Print(const Document& doc, std::ostream& output) {
+        PrintContext ctx{ output };
+        PrintNode(doc.GetRoot(), ctx);
     }
 
 }  // namespace json

@@ -28,7 +28,7 @@ namespace transport {
 		
 		type::Bus* FindBus(std::string_view bus_number) const;
 		type::Stop* FindStop(std::string_view stop_name) const;
-		std::set<std::string> FindStopsForBus(std::string_view& bus_number) const;
+		std::set<std::string> FindStopsForBus(std::string_view bus_number) const;
 
 		std::optional<data::Bus> GetBusData(std::string_view value) const;
 		std::optional<data::Stop> GetStopData(std::string_view value) const;

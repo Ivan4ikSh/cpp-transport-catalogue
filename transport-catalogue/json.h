@@ -23,17 +23,11 @@ namespace json {
 
     class Node {
     public:
-        /* Реализуйте Node, используя std::variant */
         using Value = std::variant<std::nullptr_t, std::string, int, double, bool, Array, Dict>;
 
-        Node() = default;
-        Node(std::nullptr_t);
-        Node(std::string value);
-        Node(int value);
-        Node(double value);
-        Node(bool value);
-        Node(Array array);
-        Node(Dict map);
+        template<typename ValueType>
+        Node(ValueType value) : value_(value) {}
+        Node() : value_(nullptr) {}
 
         bool IsInt() const;
         bool IsDouble() const;
@@ -57,6 +51,7 @@ namespace json {
         bool operator!=(const Node& rhs) const;
 
     private:
+        //не совсем понял как избавитья от value_ и выполнить разыменование текущего объекта в методе получения значения
         Value value_;
     };
 
@@ -92,17 +87,17 @@ namespace json {
         }
     };
 
-    struct ValuePrinter {
-        std::ostream& out;
-        void operator()(std::nullptr_t);
-        void operator()(std::string value);
-        void operator()(int value);
-        void operator()(double value);
-        void operator()(bool value);
-        void operator()(Array array);
-        void operator()(Dict dict);
-    };
-
-    void Print(const Document& doc, std::ostream& out);
+    void PrintValue(std::nullptr_t, const PrintContext& ctx);
+    void PrintValue(std::string value, const PrintContext& ctx);
+    void PrintValue(bool value, const PrintContext& ctx);
+    void PrintValue(Array array, const PrintContext& ctx);
+    void PrintValue(Dict dict, const PrintContext& ctx);
+    // Шаблон, подходящий для вывода double и int
+    template <typename Value>
+    void PrintValue(const Value& value, const PrintContext& ctx) {
+        ctx.out << value;
+    }
+    void PrintNode(const Node& node, const PrintContext& ctx);
+    void Print(const Document& doc, std::ostream& output);
 
 }  // namespace json

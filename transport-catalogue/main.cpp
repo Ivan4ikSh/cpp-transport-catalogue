@@ -15,12 +15,12 @@ int main() {
     transport::Catalogue catalogue;
     json_doc.FillCatalogue(catalogue);
 
-    const auto& stat_requests = json_doc.GetStatRequests();
+    const auto& stat_requests = json_doc.GetDataRequests();
     const auto& render_settings = json_doc.GetRenderSettings().AsMap();
     const auto& renderer = json_doc.FillRenderSettings(render_settings);
-    
+
     RequestHandler request(catalogue, renderer);
-    request.ProcessRequests(stat_requests);
+    json_doc.ProcessRequests(stat_requests, request);
     request.RenderMap().Render(output);
 
     input.close();
