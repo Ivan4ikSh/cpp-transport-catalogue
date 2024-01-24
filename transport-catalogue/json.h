@@ -14,6 +14,7 @@ namespace json {
     // Сохраните объявления Dict и Array без изменения
     using Dict = std::map<std::string, Node>;
     using Array = std::vector<Node>;
+    using Value = std::variant<std::nullptr_t, std::string, int, double, bool, Array, Dict>;
 
     // Эта ошибка должна выбрасываться при ошибках парсинга JSON
     class ParsingError : public std::runtime_error {
@@ -21,13 +22,10 @@ namespace json {
         using runtime_error::runtime_error;
     };
 
-    class Node {
+    class Node : public Value {
     public:
-        using Value = std::variant<std::nullptr_t, std::string, int, double, bool, Array, Dict>;
-
-        template<typename ValueType>
-        Node(ValueType value) : value_(value) {}
-        Node() : value_(nullptr) {}
+        /* Реализуйте Node, используя std::variant */
+        using Value::variant;
 
         bool IsInt() const;
         bool IsDouble() const;
@@ -49,10 +47,6 @@ namespace json {
 
         bool operator==(const Node& rhs) const;
         bool operator!=(const Node& rhs) const;
-
-    private:
-        //не совсем понял как избавитья от value_ и выполнить разыменование текущего объекта в методе получения значения
-        Value value_;
     };
 
     class Document {
@@ -87,17 +81,17 @@ namespace json {
         }
     };
 
-    void PrintValue(std::nullptr_t, const PrintContext& ctx);
-    void PrintValue(std::string value, const PrintContext& ctx);
-    void PrintValue(bool value, const PrintContext& ctx);
-    void PrintValue(Array array, const PrintContext& ctx);
-    void PrintValue(Dict dict, const PrintContext& ctx);
-    // Шаблон, подходящий для вывода double и int
-    template <typename Value>
-    void PrintValue(const Value& value, const PrintContext& ctx) {
-        ctx.out << value;
-    }
-    void PrintNode(const Node& node, const PrintContext& ctx);
-    void Print(const Document& doc, std::ostream& output);
+    struct ValuePrinter {
+        std::ostream& out;
+        void operator()(std::nullptr_t);
+        void operator()(std::string value);
+        void operator()(int value);
+        void operator()(double value);
+        void operator()(bool value);
+        void operator()(Array array);
+        void operator()(Dict dict);
+    };
+
+    void Print(const Document& doc, std::ostream& out);
 
 }  // namespace json

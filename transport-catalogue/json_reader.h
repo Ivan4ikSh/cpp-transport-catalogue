@@ -19,7 +19,7 @@ public:
     renderer::MapRenderer FillRenderSettings(const json::Dict& request_map) const;
 private:
     json::Document input_;
-    json::Node dummy_ = nullptr;
+    json::Node dummy_;
 
     const json::Node& GetBaseRequests() const;
 

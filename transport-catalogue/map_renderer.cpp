@@ -5,8 +5,7 @@ namespace renderer {
         return std::abs(value) < EPSILON;
     }
 
-    std::vector<svg::Polyline> MapRenderer::RenderBusLines(const std::map<std::string_view, const transport::type::Bus*>& buses, const SphereProjector& sp) const {
-        std::vector<svg::Polyline> result;
+    void MapRenderer::RenderBusLines(svg::Document& result, const std::map<std::string_view, const transport::type::Bus*>& buses, const SphereProjector& sp) const {
         size_t color_num = 0;
         for (const auto& [bus_number, bus] : buses) {
             if (bus->stops.empty()) continue;
@@ -27,14 +26,11 @@ namespace renderer {
             if (color_num < (render_settings_.color_palette.size() - 1)) ++color_num;
             else color_num = 0;
 
-            result.push_back(line);
+            result.Add(line);
         }
-
-        return result;
     }
 
-    std::vector<svg::Text> MapRenderer::RenderBusLabel(const std::map<std::string_view, const transport::type::Bus*>& buses, const SphereProjector& sp) const {
-        std::vector<svg::Text> result;
+    void MapRenderer::RenderBusLabel(svg::Document& result, const std::map<std::string_view, const transport::type::Bus*>& buses, const SphereProjector& sp) const {
         size_t color_num = 0;
         for (const auto& [bus_number, bus] : buses) {
             if (bus->stops.empty()) continue;
@@ -62,8 +58,8 @@ namespace renderer {
             underlayer.SetStrokeLineCap(svg::StrokeLineCap::ROUND);
             underlayer.SetStrokeLineJoin(svg::StrokeLineJoin::ROUND);
 
-            result.push_back(underlayer);
-            result.push_back(text);
+            result.Add(underlayer);
+            result.Add(text);
 
             if (bus->circle == false && bus->stops[0] != bus->stops[bus->stops.size() - 1]) {
                 svg::Text font_text{ text };
@@ -71,30 +67,24 @@ namespace renderer {
                 font_text.SetPosition(sp(bus->stops[bus->stops.size() - 1]->coordinates));
                 font_underlayer.SetPosition(sp(bus->stops[bus->stops.size() - 1]->coordinates));
 
-                result.push_back(font_underlayer);
-                result.push_back(font_text);
+                result.Add(font_underlayer);
+                result.Add(font_text);
             }
         }
-
-        return result;
     }
 
-    std::vector<svg::Circle> MapRenderer::RenderStopsSymbols(const std::map<std::string_view, const transport::type::Stop*>& stops, const SphereProjector& sp) const {
-        std::vector<svg::Circle> result;
+    void MapRenderer::RenderStopsSymbols(svg::Document& result, const std::map<std::string_view, const transport::type::Stop*>& stops, const SphereProjector& sp) const {
         for (const auto& [stop_name, stop] : stops) {
             svg::Circle symbol;
             symbol.SetCenter(sp(stop->coordinates));
             symbol.SetRadius(render_settings_.stop_radius);
             symbol.SetFillColor("white");
 
-            result.push_back(symbol);
+            result.Add(symbol);
         }
-
-        return result;
     }
 
-    std::vector<svg::Text> MapRenderer::RenderStopsLabels(const std::map<std::string_view, const transport::type::Stop*>& stops, const SphereProjector& sp) const {
-        std::vector<svg::Text> result;
+    void MapRenderer::RenderStopsLabels(svg::Document& result, const std::map<std::string_view, const transport::type::Stop*>& stops, const SphereProjector& sp) const {
         svg::Text text;
         svg::Text underlayer;
         for (const auto& [stop_name, stop] : stops) {
@@ -116,11 +106,9 @@ namespace renderer {
             underlayer.SetStrokeLineCap(svg::StrokeLineCap::ROUND);
             underlayer.SetStrokeLineJoin(svg::StrokeLineJoin::ROUND);
 
-            result.push_back(underlayer);
-            result.push_back(text);
+            result.Add(underlayer);
+            result.Add(text);
         }
-
-        return result;
     }
 
     svg::Document MapRenderer::GetSVG(const std::map<std::string_view, const transport::type::Bus*>& buses) const {
@@ -137,18 +125,10 @@ namespace renderer {
 
         SphereProjector sp(route_stops_coord.begin(), route_stops_coord.end(), render_settings_.width, render_settings_.height, render_settings_.padding);
 
-        for (const auto& line : RenderBusLines(buses, sp)) {
-            result.Add(line);
-        }
-        for (const auto& text : RenderBusLabel(buses, sp)) {
-            result.Add(text);
-        }
-        for (const auto& circle : RenderStopsSymbols(all_stops, sp)) {
-            result.Add(circle);
-        }
-        for (const auto& text : RenderStopsLabels(all_stops, sp)) {
-            result.Add(text);
-        }
+        RenderBusLines(result, buses, sp);
+        RenderBusLabel(result, buses, sp);
+        RenderStopsSymbols(result, all_stops, sp);
+        RenderStopsLabels(result, all_stops, sp);
 
         return result;
     }

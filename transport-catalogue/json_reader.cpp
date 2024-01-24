@@ -4,6 +4,10 @@ void JsonReader::ProcessRequests(const json::Node& stat_requests, RequestHandler
     json::Array result;
     for (auto& request : stat_requests.AsArray()) {
         const auto& request_map = request.AsMap();
+        if (!request_map.count("type")) {
+            continue;
+        }
+
         const auto& type = request_map.at("type").AsString();
         if (type == "Stop") {
             result.push_back(PrintStop(request_map, request_handler).AsMap());
@@ -18,15 +22,32 @@ void JsonReader::ProcessRequests(const json::Node& stat_requests, RequestHandler
 
     json::Print(json::Document{ result }, std::cout);
 }
-
+//GetStatRequests changed to GetDataRequests
 const json::Node& JsonReader::GetDataRequests() const {
-    const json::Dict& map = input_.GetRoot().AsMap();
-    return map.count("stat_requests") ? map.at("stat_requests") : dummy_;
+    if (const auto* ptr = std::get_if<json::Dict>(&input_.GetRoot())) {
+        if (auto it = ptr->find("stat_requests"); it != ptr->end()) {
+            return it->second;
+        }
+    }
+    return dummy_;    
 }
 
 const json::Node& JsonReader::GetRenderSettings() const {
-    const json::Dict& map = input_.GetRoot().AsMap();
-    return map.count("render_settings") ? map.at("render_settings") : dummy_;
+    if (const auto* ptr = std::get_if<json::Dict>(&input_.GetRoot())) {
+        if (auto it = ptr->find("render_settings"); it != ptr->end()) {
+            return it->second;
+        }
+    }
+    return dummy_;
+}
+
+const json::Node& JsonReader::GetBaseRequests() const {
+    if (const auto* ptr = std::get_if<json::Dict>(&input_.GetRoot())) {
+        if (auto it = ptr->find("base_requests"); it != ptr->end()) {
+            return it->second;
+        }
+    }
+    return dummy_;
 }
 
 void JsonReader::FillCatalogue(transport::Catalogue& catalogue) {
@@ -75,7 +96,6 @@ renderer::MapRenderer JsonReader::FillRenderSettings(const json::Dict& request_m
 
     const json::Array& stop_label_offset = request_map.at("stop_label_offset").AsArray();
     render_settings.stop_label_offset = { stop_label_offset[0].AsDouble(), stop_label_offset[1].AsDouble() };
-    //
     render_settings.underlayer_color = GetColor(request_map.at("underlayer_color"));
     render_settings.underlayer_width = request_map.at("underlayer_width").AsDouble();
 
@@ -85,11 +105,6 @@ renderer::MapRenderer JsonReader::FillRenderSettings(const json::Dict& request_m
     }
 
     return render_settings;
-}
-
-const json::Node& JsonReader::GetBaseRequests() const {
-    const json::Dict& map = input_.GetRoot().AsMap();
-    return map.count("base_requests") ? map.at("base_requests") : dummy_;
 }
 
 json_reader::Stop JsonReader::FillStop(const json::Dict& request_map) const {
@@ -111,6 +126,7 @@ json_reader::Bus JsonReader::FillBus(const json::Dict& request_map) const {
     for (auto& stop : request_map.at("stops").AsArray()) {
         stops.push_back(stop.AsString());
     }
+
     bool circular_route = request_map.at("is_roundtrip").AsBool();
     return { bus_number, stops, circular_route };
 }
@@ -132,10 +148,11 @@ const json::Node JsonReader::PrintBus(const json::Dict& request_map, RequestHand
     return json::Node{ result };
 }
 
-const json::Node JsonReader::PrintStop(const json::Dict& request_map, RequestHandler& request) const {
+const json::Node JsonReader::PrintStop(const json::Dict& request_map, RequestHandler& request) const { 
     json::Dict result;
-    const std::string& stop_name = request_map.at("name").AsString();
     result["request_id"] = request_map.at("id").AsInt();
+
+    const std::string& stop_name = request_map.at("name").AsString();
     if (!request.HasStop(stop_name)) {
         result["error_message"] = json::Node{ static_cast<std::string>("not found") };
     }
