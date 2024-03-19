@@ -1,7 +1,6 @@
 #include "json_builder.h"
 
 namespace json {
-
     Builder::Builder() {
         Node* root_ptr = &root_;
         nodes_stack_.emplace_back(root_ptr);

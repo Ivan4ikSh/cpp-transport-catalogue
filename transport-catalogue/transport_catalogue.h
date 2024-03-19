@@ -37,6 +37,7 @@ namespace transport {
 		int GetDistance(type::Stop* from, type::Stop* to) const;
 
 		const std::map<std::string_view, const type::Bus*> GetSortedAllBuses() const;
+		const std::map<std::string_view, const type::Stop*> GetSortedAllStops() const;
 	private:
 		std::deque<type::Bus> all_buses_;
 		std::deque<type::Stop> all_stops_;

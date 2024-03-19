@@ -18,6 +18,9 @@ void JsonReader::ProcessRequests(const json::Node& stat_requests, RequestHandler
         if (type == "Map") {
             result.push_back(PrintMap(request_map, request_handler).AsDict());
         }
+        if (type == "Route") {
+            result.push_back(PrintRoute(request_map, request_handler).AsDict());
+        }
     }
 
     json::Print(json::Document{ result }, std::cout);
@@ -35,6 +38,15 @@ const json::Node& JsonReader::GetDataRequests() const {
 const json::Node& JsonReader::GetRenderSettings() const {
     if (const auto* ptr = std::get_if<json::Dict>(&input_.GetRoot().GetValue())) {
         if (auto it = ptr->find("render_settings"); it != ptr->end()) {
+            return it->second;
+        }
+    }
+    return dummy_;
+}
+
+const json::Node& JsonReader::GetRoutingSettings() const {
+    if (const auto* ptr = std::get_if<json::Dict>(&input_.GetRoot().GetValue())) {
+        if (auto it = ptr->find("routing_settings"); it != ptr->end()) {
             return it->second;
         }
     }
@@ -107,6 +119,10 @@ renderer::MapRenderer JsonReader::FillRenderSettings(const json::Dict& request_m
     return render_settings;
 }
 
+transport::Router JsonReader::FillRoutingSettings(const json::Node& settings) const {
+    return transport::Router{ settings.AsDict().at("bus_wait_time").AsInt(), settings.AsDict().at("bus_velocity").AsDouble() };
+}
+
 json_reader::Stop JsonReader::FillStop(const json::Dict& request_map) const {
     std::string stop_name = request_map.at("name").AsString();
     geo::Coordinates coordinates = { request_map.at("latitude").AsDouble(), request_map.at("longitude").AsDouble() };
@@ -176,6 +192,70 @@ const json::Node JsonReader::PrintMap(const json::Dict& request_map, RequestHand
     result["map"] = strm.str();
 
     return json::Node{ result };
+}
+
+int CountSpan() {
+    return 0;
+}
+
+const json::Node JsonReader::PrintRoute(const json::Dict& request_map, RequestHandler& request) const {
+    json::Node result;
+    const int id = request_map.at("id").AsInt();
+    const std::string stop_from = request_map.at("from").AsString();
+    const std::string stop_to = request_map.at("to").AsString();
+    const auto& routing = request.GetOptimalRoute(stop_from, stop_to);
+
+    if (!routing) {
+        result = json::Builder{}
+        .StartDict()
+            .Key("request_id").Value(id)
+            .Key("error_message").Value("not found")
+        .EndDict()
+        .Build();
+    }
+    else {
+        json::Array items;
+        double total_time = 0.0;
+        items.reserve(routing.value().edges.size());
+
+        for (auto& edge_id : routing.value().edges) {
+            const graph::Edge<double> edge = request.GetRouterGraph().GetEdge(edge_id);
+
+            if (edge.data == 0) {
+                items.emplace_back(json::Node(json::Builder{}
+                        .StartDict()
+                            .Key("stop_name").Value(edge.name)
+                            .Key("time").Value(edge.weight)
+                            .Key("type").Value("Wait")
+                        .EndDict()
+                    .Build()));
+
+                total_time += edge.weight;
+            }
+            else {
+                items.emplace_back(json::Node(json::Builder{}
+                        .StartDict()
+                            .Key("bus").Value(edge.name)
+                            .Key("span_count").Value(static_cast<int>(edge.data))
+                            .Key("time").Value(edge.weight)
+                            .Key("type").Value("Bus")
+                        .EndDict()
+                    .Build()));
+
+                total_time += edge.weight;
+            }
+        }
+
+        result = json::Builder{}
+                .StartDict()
+                    .Key("request_id").Value(id)
+                    .Key("total_time").Value(total_time)
+                    .Key("items").Value(items)
+                .EndDict()
+            .Build();
+    }
+
+    return result;
 }
 
 svg::Color JsonReader::GetColor(const json::Node& color_element) const {

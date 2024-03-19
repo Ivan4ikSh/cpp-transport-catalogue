@@ -3,6 +3,7 @@
 #include "transport_catalogue.h"
 #include "map_renderer.h"
 #include "request_handler.h"
+#include "json_builder.h"
 
 #include <sstream>
 
@@ -14,9 +15,11 @@ public:
 
     const json::Node& GetDataRequests() const;
     const json::Node& GetRenderSettings() const;
+    const json::Node& GetRoutingSettings() const;
 
     void FillCatalogue(transport::Catalogue& catalogue);
     renderer::MapRenderer FillRenderSettings(const json::Dict& request_map) const;
+    transport::Router FillRoutingSettings(const json::Node& settings) const;
 private:
     json::Document input_;
     json::Node dummy_;
@@ -29,6 +32,7 @@ private:
     const json::Node PrintBus(const json::Dict& request_map, RequestHandler& request) const;
     const json::Node PrintStop(const json::Dict& request_map, RequestHandler& request) const;
     const json::Node PrintMap(const json::Dict& request_map, RequestHandler& request) const;
+    const json::Node PrintRoute(const json::Dict& request_map, RequestHandler& request) const;
 
     svg::Color GetColor(const json::Node& color_element) const;
 };
