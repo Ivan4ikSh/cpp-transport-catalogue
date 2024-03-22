@@ -119,8 +119,8 @@ renderer::MapRenderer JsonReader::FillRenderSettings(const json::Dict& request_m
     return render_settings;
 }
 
-transport::Router JsonReader::FillRoutingSettings(const json::Node& settings) const {
-    return transport::Router{ settings.AsDict().at("bus_wait_time").AsInt(), settings.AsDict().at("bus_velocity").AsDouble() };
+transport::BusSettings JsonReader::FillRoutingSettings(const json::Node& settings) const {
+    return transport::BusSettings(settings.AsDict().at("bus_wait_time").AsInt(), settings.AsDict().at("bus_velocity").AsDouble());
 }
 
 json_reader::Stop JsonReader::FillStop(const json::Dict& request_map) const {
@@ -219,7 +219,8 @@ const json::Node JsonReader::PrintRoute(const json::Dict& request_map, RequestHa
         items.reserve(routing.value().edges.size());
 
         for (auto& edge_id : routing.value().edges) {
-            const graph::Edge<double> edge = request.GetRouterGraph().GetEdge(edge_id);
+            //const graph::Edge<double> edge = request.GetRouterGraph().GetEdge(edge_id);
+            const graph::Edge<double> edge = request.GetRouterGraphEdge(edge_id);
 
             if (edge.data == 0) {
                 items.emplace_back(json::Node(json::Builder{}

@@ -19,7 +19,7 @@ public:
 
     void FillCatalogue(transport::Catalogue& catalogue);
     renderer::MapRenderer FillRenderSettings(const json::Dict& request_map) const;
-    transport::Router FillRoutingSettings(const json::Node& settings) const;
+    transport::BusSettings FillRoutingSettings(const json::Node& settings) const;
 private:
     json::Document input_;
     json::Node dummy_;

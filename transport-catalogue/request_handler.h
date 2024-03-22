@@ -19,7 +19,7 @@ public:
     const std::set<std::string> GetBusesByStop(std::string_view stop_name) const;
 
     const std::optional<graph::Router<double>::RouteInfo> GetOptimalRoute(const std::string_view stop_from, const std::string_view stop_to) const;
-    const graph::DirectedWeightedGraph<double>& GetRouterGraph() const;
+    const graph::Edge<double>& GetRouterGraphEdge(graph::EdgeId edge_id) const;
 private:
     const transport::Catalogue& catalogue_;
     const renderer::MapRenderer& renderer_;

@@ -16,8 +16,8 @@ const std::optional<graph::Router<double>::RouteInfo> RequestHandler::GetOptimal
     return router_.FindRoute(stop_from, stop_to);
 }
 
-const graph::DirectedWeightedGraph<double>& RequestHandler::GetRouterGraph() const {
-    return router_.GetGraph();
+const graph::Edge<double>& RequestHandler::GetRouterGraphEdge(graph::EdgeId edge_id) const {
+    return router_.GetGraphEdge(edge_id);
 }
 
 bool RequestHandler::HasBus(const std::string_view bus_number) const {
